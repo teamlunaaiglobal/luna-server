@@ -21,7 +21,7 @@ class _LunaHomeScreenState extends State<LunaHomeScreen> {
   @override
   void initState() {
     super.initState();
-    _initSystem();
+    // BootService가 main에서 이미 init을 했으므로 여기선 호출 생략
   }
 
   @override
@@ -29,19 +29,11 @@ class _LunaHomeScreenState extends State<LunaHomeScreen> {
     // 메모리 최적화
     _textController.dispose();
     _scrollController.dispose();
-    // TTS 등 리소스 정리
-    _lunaBlock.stopAll();
+    _lunaBlock.stopAll(); // 앱 끌 때 뇌 정지 (안전장치)
     super.dispose();
   }
 
-  Future<void> _initSystem() async {
-    await _lunaBlock.init();
-    
-    // 초기 환영 메시지 (필요 시 활성화)
-    // String welcome = await _lunaBlock.welcomeMessage();
-    // _addMessage('luna', welcome);
-  }
-
+  // [핵심 Logic] 메시지 전송 시 뇌(UnifiedBlock)로 전달
   Future<void> _handleSubmitted(String text) async {
     if (text.trim().isEmpty) return;
 
@@ -53,9 +45,9 @@ class _LunaHomeScreenState extends State<LunaHomeScreen> {
     });
 
     try {
-      // [수정] friendMode 호출 (기본 대화)
-      // 특정 키워드(예: "일정", "업무") 감지 시 assistantMode 호출 로직 추가 가능
-      String response = await _lunaBlock.friendMode(text);
+      // [수정] 기존 friendMode() 대신 handleInputAuto() 사용
+      // (UnifiedBlock 파일에 정의된 유일한 대화 처리 함수)
+      String response = await _lunaBlock.handleInputAuto(text);
       
       _addMessage('luna', response);
     } catch (e) {
@@ -72,6 +64,7 @@ class _LunaHomeScreenState extends State<LunaHomeScreen> {
       _messages.add({'sender': sender, 'text': text});
     });
     
+    // 자동 스크롤
     Future.delayed(const Duration(milliseconds: 100), () {
       if (_scrollController.hasClients) {
         _scrollController.animateTo(
@@ -86,7 +79,7 @@ class _LunaHomeScreenState extends State<LunaHomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F7),
+      backgroundColor: const Color(0xFFF5F5F7), // 배경색 유지
       appBar: AppBar(
         title: const Text("LUNA", style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold)),
         backgroundColor: Colors.white,
@@ -96,6 +89,7 @@ class _LunaHomeScreenState extends State<LunaHomeScreen> {
       body: SafeArea(
         child: Column(
           children: [
+            // 채팅 리스트 영역
             Expanded(
               child: ListView.builder(
                 controller: _scrollController,
@@ -111,6 +105,7 @@ class _LunaHomeScreenState extends State<LunaHomeScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisAlignment: isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
                       children: [
+                        // 루나 프로필 아이콘 (좌측)
                         if (!isUser) ...[
                            const CircleAvatar(
                             radius: 12,
@@ -119,19 +114,34 @@ class _LunaHomeScreenState extends State<LunaHomeScreen> {
                           ),
                           const SizedBox(width: 10),
                         ],
+                        // 말풍선
                         Flexible(
                           child: Container(
-                            // 텍스트 가독성을 위한 최소한의 패딩 (말풍선 아님)
-                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                            decoration: BoxDecoration(
+                              color: isUser ? Colors.blue[600] : Colors.white,
+                              borderRadius: BorderRadius.only(
+                                topLeft: const Radius.circular(16),
+                                topRight: const Radius.circular(16),
+                                bottomLeft: isUser ? const Radius.circular(16) : const Radius.circular(0),
+                                bottomRight: isUser ? const Radius.circular(0) : const Radius.circular(16),
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.05),
+                                  blurRadius: 5,
+                                  offset: const Offset(0, 2),
+                                )
+                              ],
+                            ),
                             child: Text(
                               msg['text'] ?? '',
                               style: TextStyle(
                                 fontSize: 16,
                                 height: 1.5,
-                                color: isUser ? Colors.black87 : Colors.black54,
-                                fontWeight: isUser ? FontWeight.w600 : FontWeight.w400,
+                                color: isUser ? Colors.white : Colors.black87,
+                                fontWeight: isUser ? FontWeight.w500 : FontWeight.w400,
                               ),
-                              textAlign: isUser ? TextAlign.right : TextAlign.left,
                             ),
                           ),
                         ),
@@ -141,26 +151,45 @@ class _LunaHomeScreenState extends State<LunaHomeScreen> {
                 },
               ),
             ),
+            
+            // 로딩 표시
             if (_isLoading)
               const LinearProgressIndicator(minHeight: 2, backgroundColor: Colors.transparent),
+            
+            // 입력창 영역
             Container(
               color: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Row(
                 children: [
                   Expanded(
-                    child: TextField(
-                      controller: _textController,
-                      decoration: const InputDecoration(
-                        hintText: "Message Luna...",
-                        border: InputBorder.none,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[100],
+                        borderRadius: BorderRadius.circular(24),
                       ),
-                      onSubmitted: _handleSubmitted,
+                      child: TextField(
+                        controller: _textController,
+                        decoration: const InputDecoration(
+                          hintText: "Message Luna...",
+                          border: InputBorder.none,
+                          hintStyle: TextStyle(color: Colors.grey),
+                        ),
+                        onSubmitted: _handleSubmitted,
+                      ),
                     ),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.arrow_upward),
-                    onPressed: () => _handleSubmitted(_textController.text),
+                  const SizedBox(width: 8),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.blue[600],
+                      shape: BoxShape.circle,
+                    ),
+                    child: IconButton(
+                      icon: const Icon(Icons.arrow_upward, color: Colors.white),
+                      onPressed: () => _handleSubmitted(_textController.text),
+                    ),
                   ),
                 ],
               ),

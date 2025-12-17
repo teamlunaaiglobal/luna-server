@@ -1,226 +1,108 @@
 import 'dart:async';
-import 'dart:convert';
-import 'dart:io';
-
-import 'luna_brain.dart';
-import 'luna_tts_service.dart';
-import 'memory_service.dart';
+import 'package:flutter/foundation.dart';
+import '../models/luna_module_interface.dart';
 
 class LunaUnifiedBlock {
+  // 싱글톤 패턴 유지
   static final LunaUnifiedBlock _instance = LunaUnifiedBlock._internal();
   factory LunaUnifiedBlock() => _instance;
   LunaUnifiedBlock._internal();
 
-  final LunaBrain _brain = LunaBrain();
-  final LunaTTSService _tts = LunaTTSService();
-  final MemoryService _memory = MemoryService();
+  // [신규] 모듈 레지스트리 (IntegratedService에서 등록된 모듈들)
+  final List<LunaModule> _modules = [];
 
-  // [Next-Gen Memory] 강화학습용 사용자 선호도 데이터베이스
-  List<String> _policyDatabase = []; 
-  
-  // [Settings] 라이트 모드 (On-Device Only)
-  bool _isLiteMode = false;
-
-  Future<void> init() async {
-    await _memory.loadChat();
-    _loadPolicy(); // 사용자 습관/피드백 로드
-    
-    // [선제적 행동] 앱 실행 시점 분석 (Context Aware)
-    if (!_isLiteMode) _runPreemptiveCheck(); 
-  }
-
-  void toggleLiteMode(bool value) => _isLiteMode = value;
+  // [기본 상태] 평소에는 친구(Friend)로 대기
+  LunaMode _currentMode = LunaMode.friend;
 
   // ---------------------------------------------------------------------------
-  // [1. CORE ROUTER] 입력 분석 및 모듈 배분
+  // [신규] 시스템 연동을 위한 필수 메서드 (IntegratedService용)
+  // ---------------------------------------------------------------------------
+  void registerModule(LunaModule module) {
+    _modules.add(module);
+    debugPrint("🧩 Module Registered in Brain: ${module.id}");
+  }
+
+  void switchMode(LunaMode mode) {
+    _currentMode = mode;
+    debugPrint("🔄 Mode Force Switched to: $mode");
+  }
+
+  Future<void> stopAll() async {
+    _currentMode = LunaMode.system;
+    debugPrint("🛑 Brain Stopped.");
+  }
+
+  // ---------------------------------------------------------------------------
+  // [메인] 눈치껏 알아서 처리하는 함수 (대표님 로직 + 동적 모듈 실행)
   // ---------------------------------------------------------------------------
   Future<String> handleInputAuto(String input) async {
-    String lower = input.toLowerCase();
+    if (input.trim().isEmpty) return "";
 
-    // A. [Feedback Loop] 사용자 피드백 즉시 학습 (Reinforcement Learning)
-    if (lower.startsWith("아니") || lower.contains("틀렸어") || lower.contains("수정")) {
-      return _updatePolicy(input);
+    // 1. [눈치 보기] 대표님의 '강력한 신호 감지' 로직 그대로 적용
+    LunaMode? detectedIntent = _detectStrongSignal(input);
+
+    // 2. [태세 전환] 신호 감지 시 모드 변경
+    if (detectedIntent != null) {
+      _currentMode = detectedIntent;
+      // 튜터 모드 감지 시, 수업 시작 신호면 내부적으로 처리
+      if (_currentMode == LunaMode.tutor && (input.contains("수업") || input.contains("시작"))) {
+        return await _executeModule(LunaMode.tutor, "lesson:general");
+      }
     }
 
-    // B. [RPA Module] 단순 명령 (0.1초 컷, 안전장치)
-    if (_isSimpleCommand(lower)) {
-      return _runRPA(lower, input);
-    }
-
-    // C. [Next-Gen Agent] 자율 판단 엔진 가동
-    String category = _detectCategory(lower);
-    return _runAgentEngine(category, input);
+    // 3. [실행] 결정된 모드로 모듈 찾아서 실행 (동적 바인딩)
+    // 기존의 static 호출(LunaBootService...) 대신 등록된 모듈을 사용
+    return await _executeModule(_currentMode, input);
   }
 
   // ---------------------------------------------------------------------------
-  // [2. NEXT-GEN AGENT] 생각(Thinking) -> 행동(Action) -> 예측(Prediction)
+  // [보조] 모듈 실행기 (구조적 업그레이드)
   // ---------------------------------------------------------------------------
-  Future<String> _runAgentEngine(String category, String input) async {
+  Future<String> _executeModule(LunaMode mode, String command) async {
     try {
-      // 1. [Policy Injection] 학습된 사용자 스타일 주입
-      String policyContext = _policyDatabase.join(" | ");
-      String mode = _isLiteMode ? "Lite" : "Deep Agent";
-
-      // 2. [Multi-Modal Reasoning] 한 번의 사고로 모든 판단 종료
-      String prompt = """
-      Mode: $mode
-      Role: Autonomous AI Agent (Self-Optimizing)
-      User Policy (Learned): [$policyContext]
-      Category: $category
-      Input: "$input"
+      // 현재 모드를 지원하는 모듈을 리스트에서 찾음
+      LunaModule target = _modules.firstWhere(
+        (m) => m.supportedModes.contains(mode),
+        orElse: () => _modules.firstWhere((m) => m.supportedModes.contains(LunaMode.friend))
+      );
       
-      Requirements:
-      1. Summary: Key content.
-      2. Priority: Score (0-100).
-      3. AutoAction: Simulate executing the task (Draft email, Calendar event).
-      4. Prediction: What is the NEXT logical step?
-      
-      Output JSON: 
-      {
-        "summary": "...", 
-        "priority": 0, 
-        "auto_action": "...", 
-        "prediction": "..."
-      }
-      """;
-
-      String resultRaw = await _brain.getResponse(prompt);
-      Map<String, dynamic> data = _parseJson(resultRaw);
-
-      // 3. [Execution] 데이터 처리
-      String summary = data['summary'] ?? resultRaw;
-      int score = data['priority'] ?? 50;
-      String action = data['auto_action'] ?? "None";
-      String nextStep = data['prediction'] ?? "";
-
-      // 4. [Auto-Save] 로컬 DB에 결과 저장
-      String log = "$summary\n[실행됨: $action]\n[예측제안: $nextStep]";
-      await _memory.addItem(category, log);
-
-      // 5. [Dynamic Feedback] 중요도에 따른 반응
-      String feedback = "";
-      if (score >= 80) {
-        // 긴급: 즉시 실행 보고
-        feedback = "중요한 건이라 처리했습니다.\n$action 완료.\n다음으로 '$nextStep' 진행할까요?";
-      } else {
-        // 일반: 정리 보고
-        feedback = "정리해뒀습니다. (참고: $nextStep)";
-      }
-
-      await _tts.speak(feedback);
-      await _memory.saveChat([
-        {'role': 'user', 'text': input, 'time': DateTime.now().toString()},
-        {'role': 'luna', 'text': feedback, 'time': DateTime.now().toString()},
-      ]);
-
-      return feedback;
-
+      return await target.execute(command);
     } catch (e) {
-      // [Fail-Safe] AI 실패 시 RPA로 전환
-      print("Agent Error: $e");
-      return await _runRPA(category, input);
+      debugPrint("Module Execution Error: $e");
+      return "오류가 발생했습니다: $e";
     }
   }
 
   // ---------------------------------------------------------------------------
-  // [3. REINFORCEMENT LEARNING] 자가 최적화 모듈
+  // [판단 로직] 대표님 작성 코드 원본 유지 (Logic Preservation)
   // ---------------------------------------------------------------------------
-  Future<String> _updatePolicy(String input) async {
-    // 사용자의 불만/수정 사항을 '규칙'으로 변환하여 저장
-    String newRule = "User Feedback: $input";
-    _policyDatabase.add(newRule);
-    
-    // 메모리 관리 (최근 10개 규칙 유지)
-    if (_policyDatabase.length > 10) _policyDatabase.removeAt(0);
+  LunaMode? _detectStrongSignal(String input) {
+    String text = input.replaceAll(" ", ""); 
 
-    String msg = "피드백을 학습했습니다. 다음 실행부터는 반영하겠습니다.";
-    await _tts.speak(msg);
-    return msg;
-  }
-
-  void _loadPolicy() {
-    // 초기 기본값 (가상 로드)
-    if (_policyDatabase.isEmpty) {
-      _policyDatabase.add("보고는 결론부터 말할 것");
-      _policyDatabase.add("일정은 항상 30분 전에 알림");
+    // 1. [비서/업무 신호]
+    if (text.contains("일정") || text.contains("스케줄") || text.contains("메일") || 
+        text.contains("브리핑") || text.contains("보고") || text.contains("결재") ||
+        text.contains("회의") || text.contains("미팅")) {
+      return LunaMode.assist;
     }
-  }
 
-  // ---------------------------------------------------------------------------
-  // [4. PREEMPTIVE ENGINE] 선제적 행동 (미래 예측)
-  // ---------------------------------------------------------------------------
-  Future<void> _runPreemptiveCheck() async {
-    // 앱 실행 시, 시간/위치/과거기록을 복합 분석하여 먼저 말 걸기
-    DateTime now = DateTime.now();
-    
-    // 예: 아침 9시인데 어제 저장된 'meeting'이 있고 'Action Item'이 미완료라면?
-    if (now.hour >= 8 && now.hour <= 10) {
-       List<Map<String, String>> history = await _memory.getItems('meeting');
-       if (history.isNotEmpty) {
-         // 최근 기록 분석 (가상)
-         _tts.speak("대표님, 어제 회의록을 바탕으로 오늘 오전 업무 리스트를 미리 뽑아뒀습니다. 확인하실래요?");
-       }
+    // 2. [학습/외국어 신호]
+    if (text.contains("영어") || text.contains("중국어") || text.contains("공부") || 
+        text.contains("학습") || text.contains("해석") || text.contains("뜻이야?")) {
+      return LunaMode.tutor;
     }
-  }
 
-  // ---------------------------------------------------------------------------
-  // [MODULES] RPA & Helpers
-  // ---------------------------------------------------------------------------
-  bool _isSimpleCommand(String input) {
-    return input.endsWith("해") || input.contains("기록") || input.contains("저장");
-  }
+    // 3. [시스템/제어 신호]
+    if (text.contains("배터리") || text.contains("와이파이") || text.contains("볼륨") || text.contains("시스템")) {
+      return LunaMode.system;
+    }
 
-  Future<String> _runRPA(String category, String input) async {
-    // 뇌 없이 즉시 저장 (100% 성공 보장)
-    String content = input.replaceAll("기록", "").replaceAll("메모", "").trim();
-    String target = category.contains("meeting") ? 'meeting' : 'capture';
-    
-    await _memory.addItem(target, content);
-    String feedback = "안전하게 저장했습니다.";
-    await _tts.speak(feedback);
-    return feedback;
-  }
+    // 4. [감성/친구 신호]
+    if (text.contains("안녕") || text.contains("힘들다") || text.contains("사랑") || 
+        text.contains("배고파") || text.contains("놀자") || text.contains("심심")) {
+      return LunaMode.friend;
+    }
 
-  String _detectCategory(String lower) {
-    if (lower.contains("회의") || lower.contains("미팅")) return 'meeting';
-    if (lower.contains("일정") || lower.contains("스케줄")) return 'schedule';
-    if (lower.contains("메일") || lower.contains("초안")) return 'mail';
-    if (lower.contains("분석") || lower.contains("생각")) return 'personal';
-    if (lower.contains("검색") || lower.contains("조사")) return 'research';
-    return 'capture';
+    return null; 
   }
-
-  // JSON 파싱 헬퍼
-  Map<String, dynamic> _parseJson(String text) {
-    try {
-      int start = text.indexOf('{');
-      int end = text.lastIndexOf('}');
-      if (start != -1 && end != -1) return jsonDecode(text.substring(start, end + 1));
-    } catch (e) {}
-    return {'summary': text};
-  }
-  
-  // Vision (이미지) 처리
-  Future<String> handleLocalImage(String path, String prompt) async {
-    if (_isLiteMode) return "Lite Mode";
-    try {
-      String analysis = await _brain.getImageResponse(path, "Analyze & Predict Action: $prompt");
-      await _memory.addItem('capture', "[Vision] $analysis");
-      return analysis;
-    } catch (e) { return "이미지 분석 오류"; }
-  }
-
-  // 호환성 유지
-  Future<String> friendMode(String i) => _runAgentEngine('friend', i);
-  Future<String> tutorMode(String i) async {
-    _brain.setMode('tutor');
-    String res = await _brain.getResponse(i);
-    await _tts.speak(res);
-    return res;
-  }
-  Future<void> stopAll() async => await _tts.stop();
-  Future<int> usePoint() async => 100;
-  Future<void> refillPoints() async {}
-  Map<String, String> getQuiz() => {'question': '', 'answer': ''};
-  Future<bool> checkQuizAnswer(String i, String a) async => true;
 }
