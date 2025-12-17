@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "674327171446",
+    "project_id": "luen-start",
+    "storage_bucket": "luen-start.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:674327171446:android:b7aba4cd79b2110f492a57",
+        "android_client_info": {
+          "package_name": "com.example.myapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCdov6shV17unftUFC0fR_KdrOsKOKZHkI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
