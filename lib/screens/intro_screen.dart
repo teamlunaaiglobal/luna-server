@@ -1,10 +1,7 @@
-// lib/screens/intro_screen.dart
-
 import 'dart:async';
 import 'package:flutter/material.dart';
-// [수정] 옛날 파일(luna_main_scaffold) 대신 새 파일(main_screen) import
 import 'main_screen.dart';
-import '../luen_colors.dart'; // 색상 참조
+import '../luen_colors.dart'; 
 
 class IntroScreen extends StatefulWidget {
   const IntroScreen({super.key});
@@ -17,11 +14,12 @@ class _IntroScreenState extends State<IntroScreen> {
   @override
   void initState() {
     super.initState();
-    // 3초 후 메인 화면으로 이동
     Timer(const Duration(seconds: 3), () {
       if (mounted) {
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const MainScreen()), // [수정] MainScreen으로 이동
+          MaterialPageRoute(
+            builder: (context) => const MainScreen(), 
+          ),
         );
       }
     });
@@ -29,14 +27,14 @@ class _IntroScreenState extends State<IntroScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: LuenColors.bgDeep, // 배경색 통일
+    // [Fix] Scaffold 앞에 'const'를 붙여서 화면 전체를 고정 (성능 최고조)
+    return const Scaffold(
+      backgroundColor: LuenColors.bgDeep,
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // 로고나 텍스트 애니메이션
-            const Text(
+            Text(
               "LUNA",
               style: TextStyle(
                 color: Colors.white,
@@ -45,13 +43,12 @@ class _IntroScreenState extends State<IntroScreen> {
                 fontWeight: FontWeight.bold,
               ),
             ),
-            const SizedBox(height: 20),
-            // 로딩 인디케이터
+            SizedBox(height: 20),
             CircularProgressIndicator(
               color: LuenColors.primaryBlue,
             ),
-            const SizedBox(height: 20),
-            const Text(
+            SizedBox(height: 20),
+            Text(
               "Initialize System...",
               style: TextStyle(color: Colors.white38, fontSize: 12),
             ),

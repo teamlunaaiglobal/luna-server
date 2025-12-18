@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'dart:async';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart'; // debugPrint 사용
 import 'package:http/http.dart' as http;
 import '../models/luna_module_interface.dart';
 import '../services/luna_tts_service.dart';
@@ -23,6 +23,9 @@ class LunaLanguageModule implements LunaModule {
 
   @override
   String get id => 'language_core';
+
+  // [Fix] @override 제거 (부모 인터페이스에 없는 속성이므로)
+  String get moduleName => 'LanguageModule'; 
 
   @override
   List<LunaMode> get supportedModes => [LunaMode.tutor, LunaMode.auto];
@@ -272,6 +275,7 @@ class LunaLanguageModule implements LunaModule {
       String jsonStr = items.first['content'] ?? "{}";
       return jsonDecode(jsonStr);
     } catch (e) {
+      debugPrint("⚠️ Progress Load Error: $e");
       return {};
     }
   }
@@ -341,7 +345,9 @@ class LunaLanguageModule implements LunaModule {
       if (response.statusCode == 200) {
         return jsonDecode(utf8.decode(response.bodyBytes))['choices'][0]['message']['content'];
       }
-    } catch (e) {}
+    } catch (e) {
+      debugPrint("⚠️ AI Call Error: $e");
+    }
     return _simulationLesson("Error", 1);
   }
 
@@ -365,10 +371,14 @@ class LunaLanguageModule implements LunaModule {
       int start = text.indexOf('{');
       int end = text.lastIndexOf('}');
       if (start != -1 && end != -1) return jsonDecode(text.substring(start, end + 1));
-    } catch (e) {}
+    } catch (e) {
+      debugPrint("⚠️ JSON Parse Error: $e");
+    }
     return {"dialogue": text, "prediction": "", "quiz": {"question": "Error", "answer": ""}};
   }
 
   @override
-  Future<void> handleFailure(String error) async {}
+  Future<void> handleFailure(dynamic error) async {
+    debugPrint("⚠️ LanguageModule Failure: $error");
+  }
 }

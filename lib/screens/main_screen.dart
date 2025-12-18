@@ -1,9 +1,8 @@
-// lib/screens/main_screen.dart
 import 'dart:convert';
 import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // Clipboard 때문에 필요함 (지우면 안됨)
+import 'package:flutter/services.dart'; // Clipboard
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -15,6 +14,10 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 import '../luen_colors.dart';
 import '../services/luna_brain.dart';
 import '../services/lang.dart';
+
+// [New] 선물 게이지 및 서비스 연결
+import '../widgets/luna_gift_bar.dart';
+import '../services/luna_integrated_service.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -260,14 +263,20 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin, 
     final Size screenSize = MediaQuery.of(context).size;
     final double orbBaseTop = screenSize.height * 0.18;
     final double orbDashTop = screenSize.height * 0.08;
+    
+    // 페이지 이동에 따른 오브 위치 계산
     double orbTop = orbBaseTop - (_currentPageValue * (orbBaseTop - orbDashTop));
     double orbScale = 1.0 - (_currentPageValue * 0.5);
+
+    // [중요] 상태바 높이 (배터리 표시줄 높이)
+    final double statusBarHeight = MediaQuery.of(context).padding.top;
 
     return Scaffold(
       backgroundColor: LuenColors.bgDeep,
       resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
+          // 1. 배경
           Positioned.fill(
             child: Container(
               decoration: const BoxDecoration(
@@ -278,12 +287,16 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin, 
               ),
             ),
           ),
+          
+          // 2. 루나 오브 (Orb)
           Positioned(
             top: orbTop, left: 0, right: 0,
             child: Center(
               child: Transform.scale(scale: orbScale, child: _buildLivingOrb()),
             ),
           ),
+          
+          // 3. 페이지 컨텐츠
           Positioned.fill(
             child: PageView(
               controller: _pageController,
@@ -293,8 +306,23 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin, 
               ],
             ),
           ),
+
+          // -------------------------------------------------------------
+          // 4. [New] 선물 게이지 (상태바 바로 아래에 쌍둥이처럼 배치)
+          // -------------------------------------------------------------
           Positioned(
-            top: MediaQuery.of(context).padding.top + 10,
+            top: statusBarHeight, // 핸드폰 배터리 표시 바로 밑
+            left: 0,
+            right: 0,
+            child: LunaGiftBar(
+              systemModule: LunaIntegratedService().systemModule,
+            ),
+          ),
+          
+          // 5. 상단 텍스트 정보 (LUNA / REC)
+          // 게이지와 겹치지 않게 위치를 살짝 아래로 조정 (statusBarHeight + 60)
+          Positioned(
+            top: statusBarHeight + 60,
             left: 0, right: 0,
             child: Center(
               child: Column(
@@ -307,7 +335,11 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin, 
               ),
             ),
           ),
+
+          // 6. 하단 독
           Positioned(bottom: 0, left: 0, right: 0, child: _buildBottomDock(screenSize)),
+          
+          // 7. 키보드 영역
           if (_isKeyboardVisible) Positioned(bottom: 0, left: 0, right: 0, child: _buildInputArea()),
         ],
       ),
