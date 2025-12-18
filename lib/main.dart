@@ -1,23 +1,26 @@
+// lib/main.dart
 import 'package:flutter/material.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart'; // 광고 패키지
 
-// 👇 방금 만든 AI 시동 장치 가져오기
+// [중요] 아까 분리한 파일들 연결
+import 'luen_colors.dart'; 
 import 'services/luna_boot_service.dart';
-
-// 👇 인트로 화면
-import 'screens/intro_screen.dart'; 
+import 'services/lang.dart';
+import 'screens/main_screen.dart';
 
 void main() async {
-  // 1. 기본 설정 초기화
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // 1. 광고 초기화 (필요시 사용)
+  await MobileAds.instance.initialize();
 
-  // 2. 광고 기능 켜기
-  await MobileAds.instance.initialize(); 
+  // 2. 루나 부팅 서비스 호출 (함수명이 initialize 입니다)
+  await LunaBootService().initialize();
+  
+  // 3. 언어팩 로드
+  await Lang.init();
 
-  // 3. [핵심] 루나 AI 두뇌 깨우기 (이게 있어야 비서 기능 작동)
-  await LunaBootService.boot();
-
-  // 4. 앱 화면 띄우기
   runApp(const MyApp());
 }
 
@@ -28,14 +31,29 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Luna AI',
+      title: 'LUNA',
+      
+      // [디자인] 아까 분리한 LuenColors 적용
       theme: ThemeData(
-        brightness: Brightness.light, 
-        primarySwatch: Colors.blueGrey,
-        scaffoldBackgroundColor: const Color(0xFFF5F5F7),
+        brightness: Brightness.dark,
+        primaryColor: LuenColors.primaryBlue,
+        scaffoldBackgroundColor: LuenColors.bgDeep,
         useMaterial3: true,
       ),
-      home: const IntroScreen(),
+      
+      // [다국어 지원]
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('ko', 'KR'),
+        Locale('en', 'US'),
+      ],
+      
+      // [화면] 인트로가 아니라 메인 스크린으로 직행
+      home: const MainScreen(),
     );
   }
 }
