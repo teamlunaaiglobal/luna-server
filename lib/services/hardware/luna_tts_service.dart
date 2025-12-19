@@ -30,6 +30,7 @@ class LunaTTSService {
   }
 
   /// [통합] 텍스트 말하기 (대표님 로직 + 감정 표현 결합)
+  /// emotion 인자는 선택사항입니다.
   Future<void> speak(String text, {EmotionTag emotion = EmotionTag.neutral}) async {
     if (text.isEmpty) return;
     
