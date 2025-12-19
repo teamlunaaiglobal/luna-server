@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
-import '../models/luna_module_interface.dart';
+import '../core/interfaces/luna_module_interface.dart';
 
 class LunaUnifiedBlock {
   // 싱글톤 패턴 유지

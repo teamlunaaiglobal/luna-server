@@ -23,7 +23,7 @@ dependencies:
 
   # --- [2. 루나의 핵심 기능] ---
   speech_to_text: ^7.0.0
-  flutter_tts: ^4.0.2
+  flutter_tts: ^4.2.3
   shared_preferences: ^2.3.2
   
   # [필수] 로컬 미디어 DB 저장용

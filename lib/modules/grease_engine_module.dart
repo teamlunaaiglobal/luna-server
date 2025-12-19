@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import '../../models/luna_module_interface.dart';
+import '../core/interfaces/luna_module_interface.dart';
 
 class GreaseEngineModule implements LunaModule {
   @override

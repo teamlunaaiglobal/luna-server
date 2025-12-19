@@ -5,7 +5,7 @@ import '../modules/assist_module.dart';
 import '../modules/language_module.dart';
 import '../modules/system_module.dart';
 import 'luna_unified_block.dart';
-import '../models/luna_module_interface.dart';
+import '../core/interfaces/luna_module_interface.dart';
 
 // [판단 및 행동 레이어]
 import 'luna_decision_rule.dart';

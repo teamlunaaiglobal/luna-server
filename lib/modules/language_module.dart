@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:async';
 import 'package:flutter/foundation.dart'; // debugPrint 사용
 import 'package:http/http.dart' as http;
-import '../models/luna_module_interface.dart';
+import '../core/interfaces/luna_module_interface.dart';
 import '../services/luna_tts_service.dart';
 import '../services/memory_service.dart';
 import '../services/luna_unified_block.dart'; 

@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
-import '../models/luna_module_interface.dart';
+import '../core/interfaces/luna_module_interface.dart';
 import '../services/luna_unified_block.dart'; // [필수] Core 연결
 
 class FriendModule implements LunaModule {

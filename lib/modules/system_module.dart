@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart'; // [Fix] debugPrint 사용을 위해 추가
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/luna_unified_block.dart';
-import '../models/luna_module_interface.dart';
+import '../core/interfaces/luna_module_interface.dart';
 
 class SystemModule extends LunaModule {
   final LunaUnifiedBlock core;
