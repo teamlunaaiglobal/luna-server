@@ -1,27 +1,55 @@
-// (기존 코드 유지)
-import 'dart:math';
+import 'dart:async';
+// [수정] 불필요한 dart:math, flutter/foundation 제거 완료
+import 'package:flutter_tts/flutter_tts.dart';
+import '../models/study_material.dart';
 
 class TeacherAIService {
-  // ... (기존 변수 및 초기화 유지)
+  TeacherAIService._privateConstructor();
+  static final TeacherAIService instance = TeacherAIService._privateConstructor();
 
-  /// [Gen-4 Ultimate] 이미지 상황 인식 및 학습 주제 도출
-  /// 실제로는 Google Vision API나 OpenAI GPT-4 Vision 등을 연동
-  Future<String> analyzeImageAndGetTopic(String imagePath) async {
-    // 분석 중 딜레이 시뮬레이션
-    await Future.delayed(const Duration(seconds: 2));
+  final FlutterTts _tts = FlutterTts();
+  Map<String, double> userProgress = {};
+  Map<String, double> userLevel = {};
 
-    // 더미 로직: 랜덤으로 상황 인식 결과 반환
-    final recognizedSituations = [
-      "Ordering Coffee at a Cafe",
-      "Checking in at the Airport",
-      "Asking for Directions at the Subway",
-      "Shopping at a Grocery Store",
-      "Business Meeting Presentation"
-    ];
-    
-    // 데모용 랜덤 선택
-    return recognizedSituations[Random().nextInt(recognizedSituations.length)];
+  Future<void> initialize() async {
+    await _tts.setLanguage("en-US");
   }
-  
-  // ... (기존 메서드들 유지)
+
+  Future<void> speak(String text) async {
+    await _tts.speak(text);
+  }
+
+  // 눈(Vision) 기능 들어갈 자리 (에러 방지용 껍데기)
+  Future<String> analyzeImageAndGetTopic(String imagePath) async {
+    return "Free Talking"; 
+  }
+
+  Future<StudyMaterial> fetchMaterial({required String type, double? targetDifficulty}) async {
+    final id = 'mat_${DateTime.now().millisecondsSinceEpoch}';
+    return StudyMaterial(
+      id: id,
+      type: type,
+      title: 'AI Recommends: $type',
+      contentOriginal: 'This is sample content for $type.',
+      contentTranslated: '테스트용 샘플 문장입니다.',
+      difficultyLevel: 3.0,
+      keywords: ['Test'],
+      createdAt: DateTime.now(),
+    );
+  }
+
+  void updateProgress(String materialId, double progress) {
+    userProgress[materialId] = progress;
+  }
+
+  Map<String, Map<String, double>> getLearningHistory() {
+    final history = <String, Map<String, double>>{};
+    for (var id in userProgress.keys) {
+      history[id] = {
+        'progress': userProgress[id] ?? 0.0,
+        'level': userLevel[id] ?? 0.0,
+      };
+    }
+    return history;
+  }
 }
