@@ -1,249 +1,165 @@
 import 'package:flutter/material.dart';
-import '../services/teacher_ai_service.dart';
+import '../../../widgets/luen_colors.dart';
 
-class TeacherScreen extends StatefulWidget {
+class TeacherScreen extends StatelessWidget {
   const TeacherScreen({super.key});
-
-  @override
-  State<TeacherScreen> createState() => _TeacherScreenState();
-}
-
-class _TeacherScreenState extends State<TeacherScreen> {
-  final TeacherAIService _aiService = TeacherAIService.instance;
-  Map<String, dynamic> _stats = {};
-  bool _isLoading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadStatistics();
-  }
-
-  // 학습 통계 데이터 로드
-  Future<void> _loadStatistics() async {
-    await Future.delayed(const Duration(milliseconds: 500));
-    
-    final history = _aiService.getLearningHistory();
-    double totalScore = 0;
-    int count = 0;
-    
-    history.forEach((_, v) {
-      // [수정] totalScore 계산 (레벨 * 10점 만점 기준 시뮬레이션)
-      totalScore += (v['level'] ?? 0) * 10; 
-      count++;
-    });
-
-    if (mounted) {
-      setState(() {
-        _stats = {
-          'level': 3.5, 
-          'next_level_progress': 0.7, 
-          'total_sessions': count,
-          // [수정] totalScore 변수를 사용하여 실제 평균 점수 계산 (경고 해결)
-          'avg_score': count > 0 ? (totalScore / count).clamp(0, 100).toInt() : 0,
-          'weakness': ['Pronunciation', 'Past Tense'], 
-          'recent_history': [
-            {'title': 'Business Meeting', 'score': 92, 'date': 'Today'},
-            {'title': 'Travel Booking', 'score': 85, 'date': 'Yesterday'},
-            {'title': 'Daily Greeting', 'score': 98, 'date': '2 days ago'},
-          ]
-        };
-        _isLoading = false;
-      });
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: LuenColors.bgDeep, // 리얼 블랙
       appBar: AppBar(
-        title: const Text("My Progress Report"),
-        backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
+        backgroundColor: LuenColors.bgDeep,
         elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.grey),
+          onPressed: () => Navigator.pop(context),
+        ),
+        // [타이틀 변경] AI TUTOR
+        title: const Text("AI TUTOR", 
+          style: TextStyle(
+            color: Colors.white, 
+            fontSize: 16, 
+            fontFamily: "Courier", 
+            letterSpacing: 2.0,
+            fontWeight: FontWeight.bold
+          )
+        ),
+        centerTitle: true,
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1.0),
+          // 네온 구분선
+          child: Container(color: LuenColors.neonPoint.withValues(alpha: 0.2), height: 1.0), 
+        ),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: Colors.tealAccent))
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+      body: SafeArea(
+        child: Column(
+          children: [
+            const SizedBox(height: 20),
+            
+            // 상단 안내 문구 (const 적용 완료)
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 24.0),
+              child: Row(
                 children: [
-                  // 1. 레벨 카드
-                  _buildLevelCard(),
-                  const SizedBox(height: 24),
-
-                  // 2. 통계 그리드
-                  Row(
-                    children: [
-                      Expanded(child: _buildStatItem("Total Classes", "${_stats['total_sessions']}")),
-                      const SizedBox(width: 12),
-                      Expanded(child: _buildStatItem("Avg. Score", "${_stats['avg_score']}")),
-                    ],
+                  Icon(Icons.terminal, color: LuenColors.neonPoint, size: 18),
+                  SizedBox(width: 10),
+                  Text(
+                    "LEARNING MODULES", // 튜터니까 "학습 모듈"로 변경
+                    style: TextStyle(color: LuenColors.neonPoint, fontSize: 12, letterSpacing: 1.5, fontFamily: "Courier"),
                   ),
-                  const SizedBox(height: 24),
-
-                  // 3. AI 분석 리포트
-                  const Text("AI Weakness Analysis", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 12),
-                  _buildAnalysisCard(),
-                  const SizedBox(height: 24),
-
-                  // 4. 최근 학습 이력
-                  const Text("Recent History", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 12),
-                  
-                  // [수정] .toList() 제거 (경고 해결) - map() 결과는 iterable이므로 바로 spread 가능
-                  ...(_stats['recent_history'] as List).map((h) => _buildHistoryItem(h)),
-                  
-                  const SizedBox(height: 40),
                 ],
               ),
             ),
-      
-      // 하단: 학습하러 가기 버튼
-      bottomNavigationBar: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.tealAccent,
-            foregroundColor: Colors.black,
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-          onPressed: () {
-            Navigator.pop(context); 
-          },
-          child: const Text("Go to Class (Start Learning)", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-        ),
-      ),
-    );
-  }
+            
+            const SizedBox(height: 10),
 
-  Widget _buildLevelCard() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Colors.teal.withValues(alpha: 0.8), Colors.teal.withValues(alpha: 0.2)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text("Current Level", style: TextStyle(color: Colors.white70)),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text("Lv.${_stats['level']}", style: const TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.bold)),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(20)),
-                child: const Text("Intermediate", style: TextStyle(color: Colors.white)),
+            // [메뉴 리스트] - 학습 관련 내용으로 구성
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.all(24.0),
+                children: [
+                  // 1. 수업 시작
+                  _buildSectionTitle("CLASSROOM"),
+                  _buildFunctionItem(context, "Start New Session", "새로운 주제로 수업 시작", Icons.school_outlined),
+                  _buildFunctionItem(context, "Continue Learning", "지난 수업 이어하기", Icons.history_edu),
+                  
+                  const SizedBox(height: 30),
+
+                  // 2. 복습 및 평가
+                  _buildSectionTitle("REVIEW & TEST"),
+                  _buildFunctionItem(context, "Daily Quiz", "오늘 배운 내용 퀴즈", Icons.quiz_outlined),
+                  _buildFunctionItem(context, "Mistake Note", "오답 노트 및 복습", Icons.note_alt_outlined),
+
+                  const SizedBox(height: 30),
+
+                  // 3. 분석
+                  _buildSectionTitle("ANALYTICS"),
+                  _buildFunctionItem(context, "Progress Report", "학습 진도율 확인", Icons.pie_chart_outline),
+                  _buildFunctionItem(context, "Weakness Analysis", "취약점 분석 리포트", Icons.insights),
+                ],
               ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          const Text("To Next Level", style: TextStyle(color: Colors.white70, fontSize: 12)),
-          const SizedBox(height: 8),
-          LinearProgressIndicator(
-            value: _stats['next_level_progress'],
-            backgroundColor: Colors.black26,
-            color: Colors.white,
-            minHeight: 8,
-            borderRadius: BorderRadius.circular(4),
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildStatItem(String label, String value) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.grey[900],
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white10),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: const TextStyle(color: Colors.grey, fontSize: 12)),
-          const SizedBox(height: 8),
-          Text(value, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
-        ],
+  // 섹션 제목 위젯 (비서 화면과 동일)
+  Widget _buildSectionTitle(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 15.0, left: 5),
+      child: Text(
+        title,
+        style: TextStyle(
+          color: Colors.grey.shade600,
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+          letterSpacing: 2.0,
+        ),
       ),
     );
   }
 
-  Widget _buildAnalysisCard() {
-    final weaknesses = _stats['weakness'] as List;
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.grey[900],
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.redAccent.withValues(alpha: 0.3)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Row(
-            children: [
-              Icon(Icons.warning_amber_rounded, color: Colors.redAccent, size: 20),
-              SizedBox(width: 8),
-              Text("Focus Areas", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            children: weaknesses.map((w) => Chip(
-              label: Text(w),
-              backgroundColor: Colors.redAccent.withValues(alpha: 0.1),
-              labelStyle: const TextStyle(color: Colors.white),
-              side: BorderSide.none,
-            )).toList(),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHistoryItem(Map<String, dynamic> history) {
+  // 기능 아이템 위젯 (비서 화면과 동일)
+  Widget _buildFunctionItem(BuildContext context, String title, String subtitle, IconData icon) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.grey[900],
-        borderRadius: BorderRadius.circular(12),
+        color: const Color(0xFF0A0A0A), 
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
       ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: Colors.grey[800], shape: BoxShape.circle),
-            child: const Icon(Icons.check, color: Colors.tealAccent, size: 16),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(8),
+          onTap: () {},
+          splashColor: LuenColors.neonPoint.withValues(alpha: 0.1),
+          highlightColor: LuenColors.neonPoint.withValues(alpha: 0.05),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            child: Row(
               children: [
-                Text(history['title'], style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                Text(history['date'], style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: LuenColors.neonPoint.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Icon(icon, color: LuenColors.neonPoint, size: 20),
+                ),
+                const SizedBox(width: 20),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          color: Colors.white, 
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          color: Colors.grey.shade500, 
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.arrow_forward_ios, color: Colors.grey, size: 12),
               ],
             ),
           ),
-          Text("${history['score']} pts", style: const TextStyle(color: Colors.tealAccent, fontWeight: FontWeight.bold)),
-        ],
+        ),
       ),
     );
   }

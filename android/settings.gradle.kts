@@ -20,10 +20,12 @@ pluginManagement {
 
 plugins {
     id("dev.flutter.flutter-plugin-loader") version "1.0.0"
-    // [버전 상향] 경고 메시지 해결을 위해 8.6.0 사용
-    id("com.android.application") version "8.6.0" apply false
-    // [버전 상향] 호환성이 좋은 최신 버전
-    id("org.jetbrains.kotlin.android") version "2.1.10" apply false
+    
+    // [수정 완료] 8.6.0 -> 8.9.1 (이게 핵심입니다!)
+    id("com.android.application") version "8.9.1" apply false
+    
+    // 코틀린 버전은 최신(2.1.10) 유지
+    id("org.jetbrains.kotlin.android") version "2.1.0" apply false
     id("com.google.gms.google-services") version "4.4.2" apply false
 }
 

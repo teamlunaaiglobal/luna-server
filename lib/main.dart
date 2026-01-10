@@ -1,26 +1,21 @@
-// lib/main.dart
+import 'services/user/user_settings_service.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart'; // 광고 패키지
 
-// [중요] 아까 분리한 파일들 연결
-import 'luen_colors.dart'; 
-import 'services/luna_boot_service.dart';
-import 'services/lang.dart';
-import 'screens/main_screen.dart';
+import 'widgets/luen_colors.dart'; 
+import 'screens/intro_screen.dart';
+import 'core/luna_processor.dart';
+import 'services/hardware/luna_tts_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // 1. 광고 초기화 (필요시 사용)
-  await MobileAds.instance.initialize();
-
-  // 2. 루나 부팅 서비스 호출 (함수명이 initialize 입니다)
-  await LunaBootService().initialize();
+  // [핵심 초기화]
+  await UserSettingsService.instance.init(); // 유저 설정 (언어, 시간대)
+  await LunaProcessor.instance.init();  // 친밀도 + 기억 + AI
+  await LunaTTSService.instance.init(); // TTS
   
-  // 3. 언어팩 로드
-  await Lang.init();
-
   runApp(const MyApp());
 }
 
@@ -32,16 +27,16 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'LUNA',
-      
-      // [디자인] 아까 분리한 LuenColors 적용
+      scrollBehavior: const MaterialScrollBehavior().copyWith(
+        dragDevices: {PointerDeviceKind.mouse, PointerDeviceKind.touch},
+      ),
       theme: ThemeData(
         brightness: Brightness.dark,
-        primaryColor: LuenColors.primaryBlue,
+        primaryColor: LuenColors.neonPoint, 
         scaffoldBackgroundColor: LuenColors.bgDeep,
         useMaterial3: true,
+        fontFamily: 'Pretendard',
       ),
-      
-      // [다국어 지원]
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
@@ -51,9 +46,7 @@ class MyApp extends StatelessWidget {
         Locale('ko', 'KR'),
         Locale('en', 'US'),
       ],
-      
-      // [화면] 인트로가 아니라 메인 스크린으로 직행
-      home: const MainScreen(),
+      home: const IntroScreen(),
     );
   }
 }

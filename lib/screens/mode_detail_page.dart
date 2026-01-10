@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../services/memory_service.dart';
+import '../core/memory_service.dart';
 
 class ModeDetailPage extends StatefulWidget {
   final String title;

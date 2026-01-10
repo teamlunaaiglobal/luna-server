@@ -3,9 +3,10 @@ import 'dart:async';
 import 'package:flutter/foundation.dart'; // debugPrint 사용
 import 'package:http/http.dart' as http;
 import '../core/interfaces/luna_module_interface.dart';
-import '../services/luna_tts_service.dart';
-import '../services/memory_service.dart';
-import '../services/luna_unified_block.dart'; 
+// 새로운 하드웨어 폴더 경로
+import '../services/hardware/luna_tts_service.dart';
+import '../core/memory_service.dart';
+import '../services/legacy/luna_unified_block.dart'; 
 
 class LunaLanguageModule implements LunaModule {
   // [필수] 시스템 연결 고리

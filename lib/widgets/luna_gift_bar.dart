@@ -1,63 +1,55 @@
 import 'package:flutter/material.dart';
-import '../modules/system_module.dart';
+
+// [중요] SystemModule을 "만드는" 게 아니라 "가져오는" 겁니다.
+// 만약 이 파일 안에 'class SystemModule'이라는 글자가 보이면 무조건 지우세요!
+import '../modules/system_module.dart'; 
 
 class LunaGiftBar extends StatelessWidget {
-  final SystemModule systemModule;
+  final SystemModule? systemModule;
 
-  // [Fix] 최신 Dart 문법 적용 (super.key 사용)
-  const LunaGiftBar({
-    super.key, 
-    required this.systemModule,
-  });
+  const LunaGiftBar({super.key, this.systemModule});
 
   @override
   Widget build(BuildContext context) {
-    // 1. [비밀] 스텔스 비율 계산
-    // max가 30이든 24든, 사용자 눈에는 항상 꽉 찬(1.0) 게이지로 시작함
-    final int used = systemModule.dailyUsed;
-    final int currentMax = systemModule.currentMaxLimit;
-    
-    // 방어코드: 0으로 나누기 방지
-    final int safeMax = currentMax > 0 ? currentMax : 1;
-    
-    // 남은 비율 (0.0 ~ 1.0)
-    double percentage = (safeMax - used) / safeMax;
-    if (percentage < 0) percentage = 0;
-
-    // 2. 색상 심리 (게이지 색깔 변화)
-    Color barColor;
-    if (percentage > 0.5) {
-      barColor = const Color(0xFF6C63FF); // 넉넉함 (Luna Brand Color)
-    } else if (percentage > 0.2) {
-      barColor = Colors.orangeAccent;    // 주의
-    } else {
-      barColor = Colors.redAccent;       // 경고 (방전 직전)
-    }
+    // 모듈 연결 안 됐을 때 안전장치
+    final double progress = systemModule?.currentExp ?? 0.0;
+    final int maxLimit = systemModule?.currentMaxLimit ?? 30;
+    final int currentUsed = systemModule?.dailyUsed ?? 0;
 
     return Container(
+      height: 60,
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.black45,
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: Colors.white12),
+      ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // 라벨 (숫자 없이 감성적인 텍스트만)
-          const Text(
-            "Daily Gift",
-            style: TextStyle(
-              fontSize: 12, 
-              fontWeight: FontWeight.bold,
-              color: Colors.grey,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                "ENERGY CORE", 
+                style: TextStyle(color: Colors.blueAccent, fontSize: 10, fontWeight: FontWeight.bold)
+              ),
+              Text(
+                "$currentUsed / $maxLimit", 
+                style: const TextStyle(color: Colors.white70, fontSize: 10)
+              ),
+            ],
           ),
           const SizedBox(height: 8),
-          
-          // 게이지 바
           ClipRRect(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(4),
             child: LinearProgressIndicator(
-              value: percentage, // 0.0 ~ 1.0
-              backgroundColor: Colors.grey[200],
-              valueColor: AlwaysStoppedAnimation<Color>(barColor),
-              minHeight: 10,
+              value: progress,
+              backgroundColor: Colors.white10,
+              valueColor: AlwaysStoppedAnimation<Color>(
+                progress > 0.9 ? const Color(0xFFFF6B6B) : const Color(0xFF4A90E2)
+              ),
+              minHeight: 6,
             ),
           ),
         ],

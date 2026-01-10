@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../widgets/luen_colors.dart';
 import 'main_screen.dart';
-import '../luen_colors.dart'; 
 
 class IntroScreen extends StatefulWidget {
   const IntroScreen({super.key});
@@ -14,43 +14,48 @@ class _IntroScreenState extends State<IntroScreen> {
   @override
   void initState() {
     super.initState();
+    // 3초 후 메인 화면으로 이동
     Timer(const Duration(seconds: 3), () {
-      if (mounted) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (context) => const MainScreen(), 
-          ),
-        );
-      }
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const MainScreen()),
+      );
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    // [Fix] Scaffold 앞에 'const'를 붙여서 화면 전체를 고정 (성능 최고조)
-    return const Scaffold(
-      backgroundColor: LuenColors.bgDeep,
+    return Scaffold(
+      backgroundColor: LuenColors.bgDeep, // 배경: 리얼 블랙
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(
+            // 로고 텍스트
+            const Text(
               "LUNA",
               style: TextStyle(
-                color: Colors.white,
-                fontSize: 40,
-                letterSpacing: 8,
-                fontWeight: FontWeight.bold,
+                // [수정 완료] mainAccent -> neonPoint
+                color: LuenColors.neonPoint, 
+                fontSize: 48,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 4.0,
               ),
             ),
-            SizedBox(height: 20),
-            CircularProgressIndicator(
-              color: LuenColors.primaryBlue,
+            const SizedBox(height: 20),
+            // 로딩 인디케이터
+            const CircularProgressIndicator(
+              // [수정 완료] mainAccent -> neonPoint
+              color: LuenColors.neonPoint,
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             Text(
               "Initialize System...",
-              style: TextStyle(color: Colors.white38, fontSize: 12),
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.5),
+                fontSize: 12,
+                fontFamily: "Courier",
+              ),
             ),
           ],
         ),

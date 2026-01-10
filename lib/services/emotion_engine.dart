@@ -15,7 +15,7 @@ class LunaBrain {
   LunaBrain._internal();
 
   final List<String> _geminiKeys = [
-    "AIzaSyDWvQP1hSPsMc4KV2jsp5kvo2Aus854rfI", // 실제 키 관리 주의
+    "AIzaSyDWvQP1hSPsMc4KV2jsp5kvo2Aus854rfI",
     "AIzaSyA9hKHJcgf0VO2tXybkgxZPGxd8QEi1tM0",
     "AIzaSyBpMt1fd_SDATCs7kGVe-e7fXXOcBa1uzs",
     "AIzaSyAaEtehmP6sWVuOiNTmJup_bH4KsCNlLO4",
@@ -25,21 +25,14 @@ class LunaBrain {
 
   final UserContextManager _userContext = UserContextManager();
   final LocalMediaDB _mediaDB = LocalMediaDB();
-
-  // [관계 엔진] 사만다 프로필 (친밀도 저장)
   final SamanthaProfile _samanthaProfile = SamanthaProfile();
 
   Future<String> getResponse(String input, {String userId = "default_user"}) async {
     _userContext.loadContext(userId);
     
-    // 1. [Upgrade] 고성능 감정 엔진 호출 (시간/침묵 반영)
-    // 현재는 silenceSeconds를 0으로 두지만, 추후 마이크 입력 간격으로 대체 가능
     EmotionTag tag = EmotionEngine.infer(input, 0, DateTime.now().toIso8601String());
-    
-    // 2. 관계 업데이트 (대화 내용과 감정에 따라 친밀도 변화)
     _updateRelationship(tag);
 
-    // 3. 모드 결정 (업무/복잡 -> Performance, 일상/감성 -> Economy)
     bool isHeavyTask = (tag == EmotionTag.executionMode || tag == EmotionTag.needsClarity) || 
                        input.length > 50 || 
                        _containsComplexKeywords(input);
@@ -65,16 +58,13 @@ class LunaBrain {
     AttachmentEngine.updateAttachment(_samanthaProfile, tag, isPositive);
   }
 
-  // [Samantha Mode] 관계 기반 대화 (밀당 + 찐친)
   Future<String> _executeSamanthaMode(String input, EmotionTag tag, String userId) async {
     String contextHistory = _userContext.getPreviousContext(userId);
     
-    // 현재 친밀도 레벨에 따른 페르소나 가져오기
     double level = _samanthaProfile.attachmentLevel;
     String relationshipStage = AttachmentEngine.getStageName(level);
     String personaInstruction = AttachmentEngine.getPersonaInstruction(level);
     
-    // 감정에 따른 기본 스타일 가져오기 (대표님 코드 반영)
     ResponseStyle style = EmotionEngine.mapEmotionToStyle(tag);
 
     String prompt = """
@@ -123,7 +113,7 @@ Respond naturally in Korean based on the Persona and Style above.
   Future<String> getResponseFromCore(String input, String systemPrompt) async {
     try {
       String randomKey = _geminiKeys[Random().nextInt(_geminiKeys.length)];
-      final model = GenerativeModel(model: 'gemini-1.5-flash', apiKey: randomKey); 
+      final model = GenerativeModel(model: 'gemini-2.0-flash-exp', apiKey: randomKey); 
       final chat = model.startChat(history: [Content.text(systemPrompt)]);
       final response = await chat.sendMessage(Content.text(input));
       return response.text ?? "";
@@ -162,7 +152,7 @@ Respond naturally in Korean based on the Persona and Style above.
 }
 
 // ---------------------------------------------------------
-// [2] EMOTION ENGINE (UPGRADED): 시간, 침묵, 문맥 인식
+// [2] EMOTION ENGINE
 // ---------------------------------------------------------
 
 enum EmotionTag {
@@ -186,7 +176,6 @@ class ResponseStyle {
 }
 
 class EmotionEngine {
-  // [대표님 코드 적용] 시간(currentTime)과 침묵(silenceSeconds)을 반영한 추론
   static EmotionTag infer(String input, int silenceSeconds, String currentTime) {
     final text = input.toLowerCase();
     final now = DateTime.parse(currentTime);
@@ -206,11 +195,10 @@ class EmotionEngine {
     if (text.contains("불안") || text.contains("걱정")) return EmotionTag.needsReassurance;
     if (text.contains("심심") || text.contains("놀아") || text.contains("외로")) return EmotionTag.seeksEmotionalConnection;
 
-    // [Time Context Logic]
-    if (isNight && text.length < 10) return EmotionTag.seeksEmotionalConnection; // 밤에 짧은 말 -> 외로움
-    if (isNight && text.length > 50) return EmotionTag.mentallyOverloaded; // 밤에 긴 말 -> 생각 과부하
-    if (silenceSeconds > 60) return EmotionTag.uncertain; // 오래 침묵 -> 확신 부족
-    if (hour >= 9 && hour <= 18) return EmotionTag.motivated; // 업무 시간 -> 동기 부여
+    if (isNight && text.length < 10) return EmotionTag.seeksEmotionalConnection;
+    if (isNight && text.length > 50) return EmotionTag.mentallyOverloaded;
+    if (silenceSeconds > 60) return EmotionTag.uncertain;
+    if (hour >= 9 && hour <= 18) return EmotionTag.motivated;
 
     return EmotionTag.calmFocused; 
   }
@@ -241,7 +229,7 @@ class EmotionEngine {
 }
 
 // ---------------------------------------------------------
-// [3] ATTACHMENT ENGINE: 관계 단계 및 밀당 로직
+// [3] ATTACHMENT ENGINE
 // ---------------------------------------------------------
 
 class SamanthaProfile {
@@ -253,7 +241,6 @@ class SamanthaProfile {
 class AttachmentEngine {
   static void updateAttachment(SamanthaProfile profile, EmotionTag userEmotion, bool positiveInteraction) {
     double delta = 0.0;
-    // 감정에 따른 가산점
     switch (userEmotion) {
       case EmotionTag.seeksEmotionalConnection:
       case EmotionTag.needsReassurance: delta += 2.5; break;
@@ -264,7 +251,6 @@ class AttachmentEngine {
     }
     if (positiveInteraction) delta += 0.5;
 
-    // 시간 경과에 따른 감가
     final hoursSinceLast = DateTime.now().difference(profile.lastInteractionTime).inHours;
     if (hoursSinceLast > 24) delta -= 0.5; 
     if (hoursSinceLast > 72) delta -= 2.0;
@@ -281,7 +267,6 @@ class AttachmentEngine {
     return "Soul Confidant (영혼의 파트너)";
   }
 
-  // [핵심] 단계별 페르소나 지침 (안전한 밀당 + 찐친)
   static String getPersonaInstruction(double level) {
     if (level < 20) {
       return "Mode: Polite Assistant. Tone: Formal (존댓말). Focus: Tasks.";

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../services/luna_unified_block.dart'; // 통합 두뇌 연결
+import '../core/luna_processor.dart';
+import '../services/ai/ai_manager.dart';
 
 class ChatPage extends StatefulWidget {
   const ChatPage({super.key});
@@ -18,11 +19,16 @@ class _ChatPageState extends State<ChatPage> {
     setState(() { _messages.add({"role": "user", "text": text}); });
     _controller.clear();
 
-    // [핵심] 여기서 루나의 뇌(UnifiedBlock)로 전달
-    String response = await LunaUnifiedBlock().handleInputAuto(text);
+    // [추임새] 즉시 표시
+    final fillerIndex = _messages.length;
+    setState(() { _messages.add({"role": "luna", "text": AIManager.getFillerResponse()}); });
 
+    // [핵심] LunaProcessor로 처리
+    String response = await LunaProcessor.instance.processInput(text);
+
+    // [추임새 → 실제 응답] 교체
     if (mounted) {
-      setState(() { _messages.add({"role": "luna", "text": response}); });
+      setState(() { _messages[fillerIndex] = {"role": "luna", "text": response}; });
     }
   }
 

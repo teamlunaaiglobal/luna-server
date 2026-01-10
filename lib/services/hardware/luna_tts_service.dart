@@ -1,8 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter_tts/flutter_tts.dart';
+import '../legacy/luna_brain.dart' as legacy_brain;
 
-/// 감정 태그 정의
+/// 감정 태그 정의 (레거시 호환용)
 enum EmotionTag { neutral, happy, sad, angry, tired, excited }
 
 class LunaTTSService {
@@ -47,6 +48,33 @@ class LunaTTSService {
       await _flutterTts.speak(text);
     } catch (e) {
       debugPrint("TTS Error: $e");
+    }
+  }
+  
+  /// [NEW] EmotionEngine의 EmotionTag로 말하기
+  Future<void> speakWithEmotion(String text, legacy_brain.EmotionTag tag) async {
+    EmotionTag mappedEmotion = _mapEmotionTag(tag);
+    await speak(text, emotion: mappedEmotion);
+  }
+  
+  /// [NEW] EmotionEngine EmotionTag -> TTS EmotionTag 매핑
+  EmotionTag _mapEmotionTag(legacy_brain.EmotionTag tag) {
+    switch (tag) {
+      case legacy_brain.EmotionTag.seeksEmotionalConnection:
+      case legacy_brain.EmotionTag.needsReassurance:
+        return EmotionTag.sad;
+      case legacy_brain.EmotionTag.motivated:
+      case legacy_brain.EmotionTag.confident:
+        return EmotionTag.happy;
+      case legacy_brain.EmotionTag.tired:
+      case legacy_brain.EmotionTag.mentallyOverloaded:
+        return EmotionTag.tired;
+      case legacy_brain.EmotionTag.frustrated:
+        return EmotionTag.angry;
+      case legacy_brain.EmotionTag.calmFocused:
+      case legacy_brain.EmotionTag.executionMode:
+      default:
+        return EmotionTag.neutral;
     }
   }
 
