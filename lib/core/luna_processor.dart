@@ -6,6 +6,7 @@ import '../services/hardware/luna_tts_service.dart' hide EmotionTag;
 import '../services/memory/conversation_memory.dart';
 import '../modules/teacher/services/teacher_ai_service.dart';
 import '../util/action_handler.dart';
+import '../services/proactive/proactive_engine.dart';
 
 class LunaProcessor {
   static final LunaProcessor instance = LunaProcessor._internal();
@@ -18,10 +19,12 @@ class LunaProcessor {
   final TeacherAIService _tutor = TeacherAIService.instance;
   final DuckDuckGoService _search = DuckDuckGoService();
   String _currentMode = 'friend'; // friend, tutor, secretary, search
+  final ProactiveEngine _proactive = ProactiveEngine.instance;
 
   bool _isReady = false;
 
   Future<void> init() async {
+    await _proactive.init();
     _isReady = true;
   }
 
@@ -134,6 +137,12 @@ class LunaProcessor {
 
     // 4. 대화 저장
     await _saveConversation(input, response);
+
+    // 5. 능동적 제안 체크
+    final suggestion = _proactive.analyze(input);
+    if (suggestion != null) {
+      response = "$response\n\n---\n💡 ${suggestion.message}";
+    }
     
     return response;
   }

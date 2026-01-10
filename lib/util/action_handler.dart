@@ -1,3 +1,4 @@
+import '../services/hardware/luna_vision_service.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:share_plus/share_plus.dart'; 
@@ -331,6 +332,26 @@ class ActionHandler {
     // 대화 검색
     if (lower.contains('대화 검색') || lower.contains('대화 찾아') || lower.contains('뭐라고 했') || lower.contains('언제 얘기')) {
       return "SEARCH_CONVERSATION_MODE";
+    }
+
+    // 영수증 스캔
+    if (lower.contains('영수증') || lower.contains('receipt') || lower.contains('스캔')) {
+      String result = await LunaVisionService.instance.scanReceipt();
+      if (result.contains('취소') || result.contains('인식하지')) {
+        return result;
+      }
+      await MemoryService().addItem('receipt', result);
+      return "📄 영수증 스캔 완료!\n\n$result";
+    }
+
+    // 명함 스캔
+    if (lower.contains('명함') || lower.contains('business card') || lower.contains('연락처 추가')) {
+      String result = await LunaVisionService.instance.scanBusinessCard();
+      if (result.contains('취소') || result.contains('인식하지')) {
+        return result;
+      }
+      await MemoryService().addItem('contact', result);
+      return "📇 명함 스캔 완료!\n\n$result";
     }
     
     return ""; // 매칭 안 되면 빈 문자열

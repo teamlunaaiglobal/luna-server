@@ -27,7 +27,7 @@ class LunaToolKit {
     
     switch (name) {
       case 'openCamera':
-        var file = await LunaVisionService.instance.captureOptimization();
+        var file = await LunaVisionService.instance.captureImage();
         return {'result': file != null ? 'Image captured' : 'Cancelled'};
       case 'turnOnMic':
         LunaHearingService.instance.startListening();
