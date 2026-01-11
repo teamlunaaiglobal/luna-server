@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:path_provider/path_provider.dart';
+import 'memory/conversation_memory.dart';
 
 // ---------------------------------------------------------
 // [1] LUNA BRAIN: 중앙 제어 (이성 + 감성 + 관계)
@@ -25,11 +26,12 @@ class LunaBrain {
 
   final UserContextManager _userContext = UserContextManager();
   final LocalMediaDB _mediaDB = LocalMediaDB();
+  final ConversationMemory _memory = ConversationMemory();
   final SamanthaProfile _samanthaProfile = SamanthaProfile();
 
   Future<String> getResponse(String input, {String userId = "default_user"}) async {
     _userContext.loadContext(userId);
-    
+
     EmotionTag tag = EmotionEngine.infer(input, 0, DateTime.now().toIso8601String());
     _updateRelationship(tag);
 
@@ -61,6 +63,17 @@ class LunaBrain {
   Future<String> _executeSamanthaMode(String input, EmotionTag tag, String userId) async {
     String contextHistory = _userContext.getPreviousContext(userId);
     
+    // 메모리 요약 추가
+    String memorySummary = "";
+    try {
+      final summary = _memory.getSummary();
+      if (summary.userProfile.isNotEmpty || summary.recentTopics.isNotEmpty) {
+        memorySummary = "\n[User Memory]\nProfile: ${summary.userProfile}\nRecent Topics: ${summary.recentTopics}\nEmotional State: ${summary.emotionalState}";
+      }
+    } catch (e) {
+      // 메모리 초기화 안 됐으면 스킵
+    }
+    
     double level = _samanthaProfile.attachmentLevel;
     String relationshipStage = AttachmentEngine.getStageName(level);
     String personaInstruction = AttachmentEngine.getPersonaInstruction(level);
@@ -81,7 +94,7 @@ Question Allowed: ${style.allowQuestion}
 Empathy Line Required: ${style.requireEmpathyLine}
 
 Context:
-$contextHistory
+$contextHistory$memorySummary
 
 User said: "$input"
 Respond naturally in Korean based on the Persona and Style above.

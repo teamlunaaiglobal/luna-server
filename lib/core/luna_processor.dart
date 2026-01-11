@@ -7,6 +7,7 @@ import '../services/memory/conversation_memory.dart';
 import '../modules/teacher/services/teacher_ai_service.dart';
 import '../util/action_handler.dart';
 import '../services/proactive/proactive_engine.dart';
+import '../modules/teacher/services/tutor_service.dart';
 
 class LunaProcessor {
   static final LunaProcessor instance = LunaProcessor._internal();
@@ -17,6 +18,7 @@ class LunaProcessor {
   final LunaBrain _brain = LunaBrain();
   final ConversationMemory _memory = ConversationMemory();
   final TeacherAIService _tutor = TeacherAIService.instance;
+  final TutorService _tutorService = TutorService();
   final DuckDuckGoService _search = DuckDuckGoService();
   String _currentMode = 'friend'; // friend, tutor, secretary, search
   final ProactiveEngine _proactive = ProactiveEngine.instance;
@@ -25,7 +27,23 @@ class LunaProcessor {
 
   Future<void> init() async {
     await _proactive.init();
+    // TutorService 초기화 (유저 ID와 언어는 나중에 설정)
+    // await _tutorService.initialize(userId: 'user', targetLanguage: 'en');
     _isReady = true;
+  }
+
+  /// 튜터 서비스 접근
+  TutorService get tutorService => _tutorService;
+  
+  /// 튜터 서비스 초기화 (로그인 후 호출)
+  Future<void> initTutor({
+    required String userId,
+    required String targetLanguage,
+  }) async {
+    await _tutorService.initialize(
+      userId: userId,
+      targetLanguage: targetLanguage,
+    );
   }
 
   /// [모드 감지] 입력 내용 보고 모드 판단
